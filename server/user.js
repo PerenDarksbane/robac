@@ -1,18 +1,26 @@
-function User (name, remoteAddr, remotePort) {
+function User (name, sock) {
   this.name = name
-  this.remoteAddr = remoteAddr
-  this.remotePort = remotePort
+  this.sock = sock
   this.friends = []
 }
 
 User.prototype.matches = function (remoteAddr, remotePort) {
-  return this.remoteAddr === remoteAddr && this.remotePort === remotePort
+  return this.sock.remoteAddress === remoteAddr &&
+      this.sock.remotePort === remotePort
 }
 
 User.prototype.addFriends = function (friends) {
-  for (var index in friends) {
-    this.friends.push(index)
+  for (var friend of friends) {
+    this.friends.push(friend)
   }
+}
+
+User.prototype.addFriend = function (friend) {
+  this.friends.push(friend)
+}
+
+User.prototype.write = function (msg) {
+  this.sock.write(msg)
 }
 
 module.exports.User = User
