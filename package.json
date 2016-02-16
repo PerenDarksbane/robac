@@ -1,0 +1,8 @@
+{
+    "name": "robac",
+    "description": "A console and chat oriented MMORPG",
+    "version": "1.0.0",
+    "license": "MIT",
+    "dependencies": {
+    }
+}
