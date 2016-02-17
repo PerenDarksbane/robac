@@ -42,4 +42,8 @@ User.prototype.write = function (msg) {
   this.sock.write(msg)
 }
 
+User.prototype.msgFriend = function (name, msg) {
+  this.friends.find(e => e.name === name).write(msg)
+}
+
 module.exports.User = User

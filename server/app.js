@@ -54,9 +54,8 @@ function validateUser (sock, name) {
 
 net.createServer(function (sock) {
   console.log('Connected: ' + sock.remoteAddress + ':' + sock.remotePort)
-  var data
-  sock.on('data', function (oldData) {
-    data = JSON.parse(oldData) // All data will be transmitted in JSON format
+  sock.on('data', function (data) {
+    data = JSON.parse(data) // All data will be transmitted in JSON format
     if (data.name) validateUser(sock, data.name)
     else {
       var user = findUserBySock(sock)
@@ -68,6 +67,20 @@ net.createServer(function (sock) {
       }
       var friend
       if (data.friend) {
+        console.log(data.msg)
+        if (data.msg) { // Message a specific friend
+          try {
+            user.msgFriend(data.friend, JSON.stringify({
+              msg: '[' + user.name + ']:' + data.msg
+            }))
+          } catch (e) {
+            sock.write(JSON.stringify({
+              msg: 'Failed to msg friend ' + data.friend + '. ' + e
+            }))
+            console.log('ERROR OCCURED: ' + e)
+          }
+          return
+        }
         var failedAddCount = 0
         for (friend of data.friend) {
           friend = findUserByName(friend)
@@ -91,7 +104,8 @@ net.createServer(function (sock) {
           }))
         })
       } else {
-        for (friend of user.friends) friend.write(oldData)
+        data.msg = user.name + ':' + data.msg
+        for (friend of user.friends) friend.write(JSON.stringify(data))
       }
     }
   })

@@ -1,5 +1,5 @@
 var net = require('net')
-var S = require('strings.js')
+var S = require('string')
 
 var HOST = '127.0.0.1'
 var PORT = 4000
@@ -15,7 +15,7 @@ function ask (question, format, callback) {
   stdout.write(question)
 
   stdin.once('data', function (data) {
-    data = new S(data.toString()).trimRight().string
+    data = new S(data.toString()).trimRight().s
     if (format.test(data)) callback(data)
     else {
       stdout.write('It should match: ' + format + '\n')
@@ -34,7 +34,8 @@ function inputPrompt () {
   if (isRunning) {
     ask('', /^(\w|[.()+ \t/-?!#><'])*$/, function (text) {
       if (text[0] === '/') {
-        text = text.substring(1).split(/\s+/g)
+        var oldText = text.substring(1)
+        text = oldText.split(/\s+/g)
         switch (text[0]) {
           case 'quit':
             quitSession()
@@ -45,6 +46,7 @@ function inputPrompt () {
             console.log('/help')
             console.log('/friend name1 name2...')
             console.log('/unfriend name1 name2...')
+            console.log('/msg name msg')
             break
           case 'friend':
             client.write(JSON.stringify({
@@ -54,6 +56,12 @@ function inputPrompt () {
           case 'unfriend':
             client.write(JSON.stringify({
               unfriend: text.slice(1)
+            }))
+            break
+          case 'msg':
+            client.write(JSON.stringify({
+              friend: text[1],
+              msg: new S(oldText).between(text[1]).trimLeft().s
             }))
             break
           default:
