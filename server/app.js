@@ -28,21 +28,15 @@ function removeUser (sock) {
 }
 
 function doesUserExist (name) {
-  for (var user of mainHub)
-    if (user.name === name) return true
-  return false
+  return findUserByName(name) !== undefined
 }
 
 function findUserBySock (sock) {
-  for (var user of mainHub)
-    if (user.matches(sock.remoteAddress, sock.remotePort)) return user
-  return undefined
+  return mainHub.find(e => e.matches(sock.remoteAddress, sock.remotePort))
 }
 
 function findUserByName (name) {
-  for (var user of mainHub)
-    if (user.name === name) return user
-  return undefined
+  return mainHub.find(e => e.name === name)
 }
 
 function validateUser (sock, name) {
@@ -61,35 +55,44 @@ function validateUser (sock, name) {
 net.createServer(function (sock) {
   console.log('Connected: ' + sock.remoteAddress + ':' + sock.remotePort)
   var data
-  var user
-  var friend
   sock.on('data', function (oldData) {
     data = JSON.parse(oldData) // All data will be transmitted in JSON format
     if (data.name) validateUser(sock, data.name)
-    else if (data.friend) {
-      user = findUserBySock(sock)
+    else {
+      var user = findUserBySock(sock)
       if (!user) {
-        sock.write(
-            JSON.stringify({err: 'You (somehow) do not exist. That is odd!'}))
+        sock.write(JSON.stringify({
+          err: 'You (somehow) do not exist in the server...'
+        }))
         return
       }
-      var failedAddCount = 0
-      for (friend of data.friend) {
-        friend = findUserByName(friend)
-        if (friend) {
-          friend.write(
-              JSON.stringify({msg: 'You are now ' + user.name + "'s friend"}))
-          friend.addFriend(user)
-          user.addFriend(friend)
-        } else failedAddCount++
-      }
-      sock.write(JSON.stringify({
-        msg: failedAddCount // 0 means false in js
+      var friend
+      if (data.friend) {
+        var failedAddCount = 0
+        for (friend of data.friend) {
+          friend = findUserByName(friend)
+          if (friend) {
+            friend.write(
+            JSON.stringify({msg: 'You are now ' + user.name + "'s friend"}))
+            friend.addFriend(user)
+            user.addFriend(friend)
+          } else failedAddCount++
+        }
+        sock.write(JSON.stringify({
+          msg: failedAddCount // 0 means false in js
             ? 'Cannot find ' + failedAddCount + ' people / person'
             : 'Done adding friends'
-      }))
-    } else {
-      for (friend of findUserBySock(sock).friends) friend.write(oldData)
+        }))
+      } else if (data.unfriend) {
+        user.removeFriendsByName(data.unfriend, function (f) {
+          f.write(JSON.stringify({
+            msg: 'You have been unfriended by ' + user.name + '. ' +
+              user.name + ' can still see your chats however'
+          }))
+        })
+      } else {
+        for (friend of user.friends) friend.write(oldData)
+      }
     }
   })
   sock.on('close', function (data) {

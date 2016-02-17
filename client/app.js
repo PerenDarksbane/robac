@@ -24,6 +24,12 @@ function ask (question, format, callback) {
   })
 }
 
+function quitSession () {
+  isRunning = false
+  client.destroy()
+  process.exit(0)
+}
+
 function inputPrompt () {
   if (isRunning) {
     ask('', /^(\w|[.()+ \t/-?!#><'])*$/, function (text) {
@@ -31,19 +37,23 @@ function inputPrompt () {
         text = text.substring(1).split(/\s+/g)
         switch (text[0]) {
           case 'quit':
-            isRunning = false
-            client.destroy()
-            process.exit(0)
+            quitSession()
             break
           case 'help':
             console.log('If this is non-intentional, prefix a space / tab character')
             console.log('/quit')
             console.log('/help')
             console.log('/friend name1 name2...')
+            console.log('/unfriend name1 name2...')
             break
           case 'friend':
             client.write(JSON.stringify({
               friend: text.slice(1)
+            }))
+            break
+          case 'unfriend':
+            client.write(JSON.stringify({
+              unfriend: text.slice(1)
             }))
             break
           default:
@@ -76,9 +86,8 @@ client.on('data', function (data) {
   if (data.msg) {
     console.log(data.msg)
   } else if (data.err) {
-    isRunning = false
-    client.destroy()
     console.error(data.err)
+    quitSession()
   } else {
     console.log('The client or server you are running is outdated!')
     console.log('DATA: ' + data)
@@ -86,11 +95,11 @@ client.on('data', function (data) {
 })
 
 client.on('close', function () {
-  isRunning = false
   console.log('Connection closed')
+  quitSession()
 })
 
 client.on('error', function () {
-  isRunning = false
   console.log('Cannot connect to server')
+  quitSession()
 })
