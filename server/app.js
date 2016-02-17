@@ -89,7 +89,6 @@ net.createServer(function (sock) {
             : 'Done adding friends'
       }))
     } else {
-      sock.write(oldData)
       for (friend of findUserBySock(sock).friends) friend.write(oldData)
     }
   })
@@ -98,7 +97,7 @@ net.createServer(function (sock) {
     console.log('Close: ' + sock.remoteAddress + ':' + sock.remotePort)
   })
   sock.on('error', function (err) {
-    // Honestly don't give a damn... (And that is really bad I know)
+    console.log('Error occured: ' + err)
   })
 }).listen(PORT, HOST)
 

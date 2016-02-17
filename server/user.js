@@ -22,7 +22,7 @@ User.prototype.addFriend = function (friend) {
 User.prototype.removeFriend = function (friend) {
   for (var i = 0; i < this.friends.length; i++) {
     if (this.friends[i] === friend) {
-      this.friends.slice(i, i + 1)
+      this.friends.splice(i, i + 1)
     }
   }
 }
