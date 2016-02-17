@@ -26,7 +26,7 @@ function ask (question, format, callback) {
 
 function inputPrompt () {
   if (isRunning) {
-    ask('', /^(\w|[+ \t/-?!#><'])*$/, function (text) {
+    ask('', /^(\w|[.()+ \t/-?!#><'])*$/, function (text) {
       if (text[0] === '/') {
         text = text.substring(1).split(/\s+/g)
         switch (text[0]) {
