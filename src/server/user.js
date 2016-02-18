@@ -22,11 +22,36 @@
  * SOFTWARE.
  */
 
+const crypto = require('crypto')
+
+function randHex (len) {
+  return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len)
+}
+
 function User (name, sock) {
   this.name = name
   this.sock = sock
   this.friends = []
   this.cash = 0
+  this.difficulty = 2
+  this.ID = randHex(this.difficulty)
+  this.mobcounter = 0
+}
+
+User.prototype.findMobs = function (onFind) {
+  if (typeof (onFind) !== 'function') {
+    onFind = function () {}
+  }
+  (function () {
+    if (this.mobcounter > 0 && this.mobcounter % Math.floor((this.difficulty / 2) + 1) === 0) {
+      this.mobcounter--
+    }
+    if (this.ID === randHex(this.difficulty)) {
+      onFind()
+      this.mobcounter++
+    }
+    setTimeout(this.findMobs(), 3500)
+  })()
 }
 
 User.prototype.matches = function (remoteAddr, remotePort) {
@@ -89,6 +114,10 @@ User.prototype.transGp = function (user, amount, postTrans) {
     this.cash -= amount
     postTrans(true, friend)
   }
+}
+
+User.prototype.incrDifficulty = function () {
+  this.difficulty += 2
 }
 
 module.exports.User = User

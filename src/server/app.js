@@ -71,6 +71,11 @@ function validateUser (sock, name) {
   } else {
     var newUser = new User(name, sock)
     newUser.cash = 150
+    newUser.findMobs(function () {
+      sock.write(JSON.stringify({
+        msg: 'Mob detected...'
+      }))
+    })
     mainHub.push(newUser)
     sock.write(JSON.stringify({
       msg: 'Welcome ' + name + '!'
@@ -127,6 +132,10 @@ function procQuery (user, query) {
   query = query.toLowerCase()
   switch (query) {
     case 'friend':
+      user.write(JSON.stringify({
+        msg: '' + (user.friends.length > 0)
+      }))
+      break
     case 'friends':
       user.write(JSON.stringify({
         msg: user.listFriends()
@@ -136,6 +145,16 @@ function procQuery (user, query) {
     case 'cash':
       user.write(JSON.stringify({
         msg: 'GP: ' + user.cash
+      }))
+      break
+    case 'mob':
+      user.write(JSON.stringify({
+        msg: '' + (user.mobcounter > 0)
+      }))
+      break
+    case 'mobs':
+      user.write(JSON.stringify({
+        msg: '' + user.mobcounter
       }))
       break
     default:
