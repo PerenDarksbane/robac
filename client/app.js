@@ -40,13 +40,16 @@ function inputPrompt () {
           case 'quit':
             quitSession()
             break
+          case '?':
           case 'help':
             console.log('If this is non-intentional, prefix a space / tab character')
             console.log('/quit')
             console.log('/help')
+            console.log('/?')
             console.log('/friend name1 name2...')
             console.log('/unfriend name1 name2...')
             console.log('/msg name msg')
+            console.log('/query field')
             break
           case 'friend':
             client.write(JSON.stringify({
@@ -62,6 +65,11 @@ function inputPrompt () {
             client.write(JSON.stringify({
               friend: text[1],
               msg: new S(oldText).between(text[1]).trimLeft().s
+            }))
+            break
+          case 'query':
+            client.write(JSON.stringify({
+              query: text[1]
             }))
             break
           default:

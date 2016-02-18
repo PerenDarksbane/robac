@@ -2,6 +2,7 @@ function User (name, sock) {
   this.name = name
   this.sock = sock
   this.friends = []
+  this.cash = 0
 }
 
 User.prototype.matches = function (remoteAddr, remotePort) {
@@ -38,12 +39,25 @@ User.prototype.removeFriend = function (friend) {
   }
 }
 
+User.prototype.listFriends = function () {
+  if (this.friends.length === 0) return '<no friends>'
+  if (this.friends.length === 1) return this.friends[0].name
+  return this.friends.reduce((h, t) => h.name + ', ' + t.name)
+}
+
 User.prototype.write = function (msg) {
   this.sock.write(msg)
 }
 
 User.prototype.msgFriend = function (name, msg) {
   this.friends.find(e => e.name === name).write(msg)
+}
+
+User.prototype.transGp = function (user, amount) {
+  if (amount > this.cash) return false
+  user.cash += amount
+  this.cash -= amount
+  return true
 }
 
 module.exports.User = User

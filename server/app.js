@@ -52,6 +52,71 @@ function validateUser (sock, name) {
   }
 }
 
+function procDirectMsg (user, friend, tmsg) {
+  try {
+    user.msgFriend(friend, JSON.stringify({
+      msg: '[' + user.name + ']:' + tmsg
+    }))
+  } catch (e) {
+    user.write(JSON.stringify({
+      msg: 'Failed to msg friend ' + friend + '. ' + e
+    }))
+    console.log('ERROR OCCURED: ' + e)
+  }
+}
+
+function procAddFriend (user, reqFriend) {
+  var failedAddCount = 0
+  for (var friend of reqFriend) {
+    friend = findUserByName(friend)
+    if (friend) {
+      friend.write(
+      JSON.stringify({msg: 'You are now ' + user.name + "'s friend"}))
+      friend.addFriend(user)
+      user.addFriend(friend)
+    } else failedAddCount++
+  }
+  user.write(JSON.stringify({
+    msg: failedAddCount // 0 means false in js
+      ? 'Cannot find ' + failedAddCount + ' people / person'
+      : 'Done adding friends'
+  }))
+}
+
+function procDelFriend (user, friends) {
+  user.removeFriendsByName(friends, function (f) {
+    f.write(JSON.stringify({
+      msg: 'You have been unfriended by ' + user.name + '. ' +
+        user.name + ' can still see your chats however'
+    }))
+  })
+}
+
+function procEcho (user, data) {
+  data.msg = user.name + ':' + data.msg
+  for (var friend of user.friends) friend.write(JSON.stringify(data))
+}
+
+function procQuery (user, query) {
+  query = query.toLowerCase()
+  switch (query) {
+    case 'friend':
+    case 'friends':
+      user.write(JSON.stringify({
+        msg: user.listFriends()
+      }))
+      break
+    case 'gp':
+    case 'cash':
+      user.write(JSON.stringify({
+        msg: 'GP: ' + user.cash
+      }))
+      break
+    default:
+      break
+  }
+}
+
 net.createServer(function (sock) {
   console.log('Connected: ' + sock.remoteAddress + ':' + sock.remotePort)
   sock.on('data', function (data) {
@@ -65,48 +130,12 @@ net.createServer(function (sock) {
         }))
         return
       }
-      var friend
       if (data.friend) {
-        console.log(data.msg)
-        if (data.msg) { // Message a specific friend
-          try {
-            user.msgFriend(data.friend, JSON.stringify({
-              msg: '[' + user.name + ']:' + data.msg
-            }))
-          } catch (e) {
-            sock.write(JSON.stringify({
-              msg: 'Failed to msg friend ' + data.friend + '. ' + e
-            }))
-            console.log('ERROR OCCURED: ' + e)
-          }
-          return
-        }
-        var failedAddCount = 0
-        for (friend of data.friend) {
-          friend = findUserByName(friend)
-          if (friend) {
-            friend.write(
-            JSON.stringify({msg: 'You are now ' + user.name + "'s friend"}))
-            friend.addFriend(user)
-            user.addFriend(friend)
-          } else failedAddCount++
-        }
-        sock.write(JSON.stringify({
-          msg: failedAddCount // 0 means false in js
-            ? 'Cannot find ' + failedAddCount + ' people / person'
-            : 'Done adding friends'
-        }))
-      } else if (data.unfriend) {
-        user.removeFriendsByName(data.unfriend, function (f) {
-          f.write(JSON.stringify({
-            msg: 'You have been unfriended by ' + user.name + '. ' +
-              user.name + ' can still see your chats however'
-          }))
-        })
-      } else {
-        data.msg = user.name + ':' + data.msg
-        for (friend of user.friends) friend.write(JSON.stringify(data))
-      }
+        if (data.msg) procDirectMsg(user, data.friend, data.msg)
+        else procAddFriend(user, data.friend)
+      } else if (data.unfriend) procDelFriend(user, data.unfriend)
+      else if (data.query) procQuery(user, data.query)
+      else procEcho(user, data)
     }
   })
   sock.on('close', function (data) {
