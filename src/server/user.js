@@ -22,11 +22,7 @@
  * SOFTWARE.
  */
 
-const crypto = require('crypto')
-
-function randHex (len) {
-  return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len)
-}
+var crypto = require('crypto')
 
 function User (name, sock) {
   this.name = name
@@ -38,20 +34,31 @@ function User (name, sock) {
   this.mobcounter = 0
 }
 
+var randHex = function (len) {
+  len = len | 0 // Ensure its a number
+  return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len)
+}
+
+var inner = function (u, onFind) {
+  if (u.mobcounter > 0 && u.mobcounter % Math.floor((u.difficulty / 2) + 1) === 0) {
+    u.mobcounter--
+  }
+  var tmp = randHex(u.difficulty)
+  console.log(u.name + '-->' + u.ID + ':' + tmp)
+  if (u.ID === tmp) {
+    u.mobcounter++
+    onFind()
+  }
+  setTimeout(function () {
+    inner(u, onFind)
+  }, 500)
+}
+
 User.prototype.findMobs = function (onFind) {
   if (typeof (onFind) !== 'function') {
     onFind = function () {}
   }
-  (function () {
-    if (this.mobcounter > 0 && this.mobcounter % Math.floor((this.difficulty / 2) + 1) === 0) {
-      this.mobcounter--
-    }
-    if (this.ID === randHex(this.difficulty)) {
-      onFind()
-      this.mobcounter++
-    }
-    setTimeout(this.findMobs(), 3500)
-  })()
+  inner(this, onFind)
 }
 
 User.prototype.matches = function (remoteAddr, remotePort) {
