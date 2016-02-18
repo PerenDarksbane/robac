@@ -74,6 +74,7 @@ function inputPrompt () {
             console.log('/unfriend name1 name2...')
             console.log('/msg name msg')
             console.log('/query field')
+            console.log('/trans name amount')
             break
           case 'friend':
             client.write(JSON.stringify({
@@ -94,6 +95,12 @@ function inputPrompt () {
           case 'query':
             client.write(JSON.stringify({
               query: text[1]
+            }))
+            break
+          case 'trans':
+            client.write(JSON.stringify({
+              friend: text[1],
+              amount: text[2] | 0 // Javascript hack to turn stuff into numbers
             }))
             break
           default:

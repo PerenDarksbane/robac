@@ -69,7 +69,9 @@ function validateUser (sock, name) {
       err: 'Choose a new logon name. ' + name + ' is already used.'
     }))
   } else {
-    mainHub.push(new User(name, sock))
+    var newUser = new User(name, sock)
+    newUser.cash = 150
+    mainHub.push(newUser)
     sock.write(JSON.stringify({
       msg: 'Welcome ' + name + '!'
     }))
@@ -141,24 +143,57 @@ function procQuery (user, query) {
   }
 }
 
+function procTransfer (user, friend, amount) {
+  if (amount < 0) user.write('Transfer failed: Negative transfer amount')
+  else if (amount > 0) {
+    user.transGp(friend, amount, function (tstat, dest) {
+      if (tstat) {
+        dest.write(JSON.stringify({
+          msg: 'Received ' + amount + (amount === 1 ? ' GP' : 'GPs') +
+            ' from ' + user.name
+        }))
+        user.write(JSON.stringify({msg: 'Transfer completed'}))
+      } else {
+        if (!isDef(dest)) {
+          user.write(JSON.stringify({
+            msg: friend + ' is not present in friend list'
+          }))
+          return
+        }
+        dest.write(JSON.stringify({
+          msg: 'Transfer by ' + user.name + ' has failed'
+        }))
+        user.write(JSON.stringify({
+          msg: 'Transfer failed: Insufficient GP in reserve'
+        }))
+      }
+    })
+  }
+}
+
+function isDef (v) {
+  return typeof (v) !== 'undefined' && v !== null
+}
+
 net.createServer(function (sock) {
   console.log('Connected: ' + sock.remoteAddress + ':' + sock.remotePort)
   sock.on('data', function (data) {
     data = JSON.parse(data) // All data will be transmitted in JSON format
-    if (data.name) validateUser(sock, data.name)
+    if (isDef(data.name)) validateUser(sock, data.name)
     else {
       var user = findUserBySock(sock)
-      if (!user) {
+      if (!isDef(user)) {
         sock.write(JSON.stringify({
           err: 'You (somehow) do not exist in the server...'
         }))
         return
       }
-      if (data.friend) {
-        if (data.msg) procDirectMsg(user, data.friend, data.msg)
+      if (isDef(data.friend)) {
+        if (isDef(data.msg)) procDirectMsg(user, data.friend, data.msg)
+        else if (isDef(data.amount)) procTransfer(user, data.friend, data.amount)
         else procAddFriend(user, data.friend)
-      } else if (data.unfriend) procDelFriend(user, data.unfriend)
-      else if (data.query) procQuery(user, data.query)
+      } else if (isDef(data.unfriend)) procDelFriend(user, data.unfriend)
+      else if (isDef(data.query)) procQuery(user, data.query)
       else procEcho(user, data)
     }
   })

@@ -77,11 +77,18 @@ User.prototype.msgFriend = function (name, msg) {
   this.friends.find(e => e.name === name).write(msg)
 }
 
-User.prototype.transGp = function (user, amount) {
-  if (amount > this.cash) return false
-  user.cash += amount
-  this.cash -= amount
-  return true
+User.prototype.transGp = function (user, amount, postTrans) {
+  if (typeof (postTrans) !== 'function') {
+    postTrans = function (transferStatus, friend) {}
+  }
+  var friend = this.friends.find(e => e.name === user)
+  if (typeof (friend) === 'undefined' || amount > this.cash) {
+    postTrans(false, friend)
+  } else {
+    friend.cash += amount
+    this.cash -= amount
+    postTrans(true, friend)
+  }
 }
 
 module.exports.User = User
