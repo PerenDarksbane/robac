@@ -30,39 +30,68 @@ var PORT = 4000
 
 const mainHub = []
 
+/**
+ * Removes a user from the `mainHub`.
+ *
+ * @param sock socket of the user you are deleting
+ */
 function removeUser (sock) {
   var user
   var friend
   var index
   for (index in mainHub) {
-    user = mainHub[index]
-    if (user.matches(sock.remoteAddress, sock.remotePort)) {
-      mainHub.splice(index, index + 1)
-      console.log('User ' + user.name + ' has left')
-      console.log("Unlinking user's friends")
-      for (friend of user.friends) {
-        friend.write(JSON.stringify({
-          msg: 'Your friend ' + user.name + ' has disconnected'
-        }))
-        friend.removeFriend(user)
+    if (mainHub.hasOwnProperty(index)) {
+      user = mainHub[index]
+      if (user.matches(sock.remoteAddress, sock.remotePort)) {
+        mainHub.splice(index, index + 1)
+        console.log('User ' + user.name + ' has left')
+        console.log("Unlinking user's friends")
+        for (friend of user.friends) {
+          friend.write(JSON.stringify({
+            msg: 'Your friend ' + user.name + ' has disconnected'
+          }))
+          friend.removeFriend(user)
+        }
+        break
       }
-      break
     }
   }
 }
 
+/**
+ * Checks if a user exist based on the user's name
+ *
+ * @param name The user's name
+ */
 function doesUserExist (name) {
   return findUserByName(name) !== undefined
 }
 
+/**
+ * Finds the user using the user's socket data
+ *
+ * @param sock The user's socket
+ */
 function findUserBySock (sock) {
   return mainHub.find(e => e.matches(sock.remoteAddress, sock.remotePort))
 }
 
+/**
+ * Finds the user using the user's name
+ *
+ * @param sock The user's name
+ */
 function findUserByName (name) {
   return mainHub.find(e => e.name === name)
 }
 
+/**
+ * Checks if a username is already used. Adds the user into `mainHub`
+ * otherwise. It also registers mob detection and initial gold pieces.
+ *
+ * @param sock The user's socket
+ * @param name The user's name
+ */
 function validateUser (sock, name) {
   if (doesUserExist(name)) {
     sock.write(JSON.stringify({
@@ -83,6 +112,13 @@ function validateUser (sock, name) {
   }
 }
 
+/**
+ * Direct messages a friend
+ *
+ * @param user The user performing this ACTION
+ * @param friend The friend receiving the msg
+ * @param tmsg The message sent
+ */
 function procDirectMsg (user, friend, tmsg) {
   try {
     user.msgFriend(friend, JSON.stringify({
@@ -96,6 +132,12 @@ function procDirectMsg (user, friend, tmsg) {
   }
 }
 
+/**
+ * Adds a friend to the user
+ *
+ * @param user The user performing this action
+ * @param reqFriend The friend being added
+ */
 function procAddFriend (user, reqFriend) {
   var failedAddCount = 0
   for (var friend of reqFriend) {
@@ -114,6 +156,13 @@ function procAddFriend (user, reqFriend) {
   }))
 }
 
+/**
+ * Removes a friend from a user's friend list. Note: Does not remove person
+ * from friend's friend list
+ *
+ * @param user The user performing the action
+ * @param friends A list of friends being added
+ */
 function procDelFriend (user, friends) {
   user.removeFriendsByName(friends, function (f) {
     f.write(JSON.stringify({
@@ -123,11 +172,24 @@ function procDelFriend (user, friends) {
   })
 }
 
+/**
+ * Sending standard messages to others meaning they are sent to all friends.
+ *
+ * @param user The user performing this action
+ * @param data The message being transmitted in JSON format. `msg` attribute
+ * must be present
+ */
 function procEcho (user, data) {
   data.msg = user.name + ':' + data.msg
   for (var friend of user.friends) friend.write(JSON.stringify(data))
 }
 
+/**
+ * Queries the data for the user
+ *
+ * @param user The user performing this action
+ * @param query The thing user is querying
+ */
 function procQuery (user, query) {
   query = query.toLowerCase()
   switch (query) {
@@ -162,6 +224,13 @@ function procQuery (user, query) {
   }
 }
 
+/**
+ * Deals with transfering gold pieces. Can only perform give and on friends.
+ *
+ * @param user The user performing this action
+ * @param friend The friend receiving
+ * @param amount The amount of gold pieces the user is giving
+ */
 function procTransfer (user, friend, amount) {
   if (amount < 0) user.write('Transfer failed: Negative transfer amount')
   else if (amount > 0) {
@@ -190,6 +259,11 @@ function procTransfer (user, friend, amount) {
   }
 }
 
+/**
+ * Checks if a variable is defined or is null
+ *
+ * @param v The variable you are testing
+ */
 function isDef (v) {
   return typeof (v) !== 'undefined' && v !== null
 }

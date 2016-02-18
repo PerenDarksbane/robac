@@ -40,11 +40,12 @@ function ask (question, format, callback) {
 
   stdin.once('data', function (data) {
     data = new S(data.toString()).trimRight().s
-    if (format.test(data)) callback(data)
-    else {
-      stdout.write('It should match: ' + format + '\n')
-      ask(question, format, callback)
+    if (format.test(data)) {
+      callback(data)
+      return
     }
+    stdout.write('It should match: ' + format + '\n')
+    ask(question, format, callback)
   })
 }
 
