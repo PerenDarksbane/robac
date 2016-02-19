@@ -23,6 +23,7 @@
  */
 
 var crypto = require('crypto')
+var Mob = require('./mob').Mob
 
 function User (name, sock) {
   this.name = name
@@ -32,6 +33,9 @@ function User (name, sock) {
   this.difficulty = 2
   this.ID = randHex(this.difficulty)
   this.mobcounter = 0
+  this.atkPoints = 10
+  this.defPoints = 10
+  this.hp = 25
 }
 
 var randHex = function (len) {
@@ -39,13 +43,15 @@ var randHex = function (len) {
   return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len)
 }
 
+var rand = function (lower, higher) {
+  return Math.floor(Math.random() * higher + lower)
+}
+
 var inner = function (u, onFind) {
   if (u.mobcounter > 0 && u.mobcounter % Math.floor((u.difficulty / 2) + 1) === 0) {
     u.mobcounter--
   }
-  var tmp = randHex(u.difficulty)
-  console.log(u.name + '-->' + u.ID + ':' + tmp)
-  if (u.ID === tmp) {
+  if (u.ID === randHex(u.difficulty)) {
     u.mobcounter++
     onFind()
   }
@@ -59,6 +65,33 @@ User.prototype.findMobs = function (onFind) {
     onFind = function () {}
   }
   inner(this, onFind)
+}
+
+var mobKillInner = function (user, mob, cb) {
+  setTimeout(function () {
+    var atkpts
+    while (!mob.tryDef(rand(0, user.atkPoints))) {
+      atkpts = mob.tryHit()
+      if (user.def <= atkpts) {
+        user.hp -= atkpts
+        if (user.hp <= 5) {
+          user.mobcounter++
+          cb(false)
+          return
+        }
+      }
+    }
+    cb(true)
+  }, 100)
+}
+
+User.prototype.killMob = function (f) {
+  if (typeof (f) !== 'function') {
+    f = function (r) {}
+  }
+  this.mobcounter--
+  var mob = new Mob(this.difficulty, this.ID)
+  mobKillInner(this, mob, f)
 }
 
 User.prototype.matches = function (remoteAddr, remotePort) {

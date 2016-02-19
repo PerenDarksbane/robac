@@ -76,6 +76,7 @@ function inputPrompt () {
             console.log('/msg name msg')
             console.log('/query field')
             console.log('/trans name amount')
+            console.log('/kill')
             break
           case 'friend':
             client.write(JSON.stringify({
@@ -102,6 +103,11 @@ function inputPrompt () {
             client.write(JSON.stringify({
               friend: text[1],
               amount: text[2] | 0 // Javascript hack to turn stuff into numbers
+            }))
+            break
+          case 'kill':
+            client.write(JSON.stringify({
+              kill: true
             }))
             break
           default:

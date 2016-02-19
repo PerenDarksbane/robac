@@ -287,7 +287,23 @@ net.createServer(function (sock) {
         else procAddFriend(user, data.friend)
       } else if (isDef(data.unfriend)) procDelFriend(user, data.unfriend)
       else if (isDef(data.query)) procQuery(user, data.query)
-      else procEcho(user, data)
+      else if (isDef(data.kill)) {
+        console.log('Started killing...')
+        user.killMob(function (rst) {
+          if (rst) {
+            var reward = user.difficulty * 10
+            user.write(JSON.stringify({
+              msg: 'Adding ' + reward + ' GPs for killing mob'
+            }))
+            user.cash += reward
+          } else {
+            user.write(JSON.stringify({
+              msg: 'You have ' + user.hp + ' hp remaining...'
+            }))
+          }
+        })
+        console.log('Killing in progress...')
+      } else procEcho(user, data)
     }
   })
   sock.on('close', function (data) {
