@@ -100,7 +100,10 @@ var mobKillInner = function (user, mob, cb) {
     setTimeout(function () {
       mobKillInner(user, mob, cb)
     }, 100)
-  } else cb(true)
+  } else {
+    cb(true)
+    return
+  }
 }
 
 /**
