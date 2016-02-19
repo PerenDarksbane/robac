@@ -25,6 +25,13 @@
 var utils = require('../utils')
 var Mob = require('./mob').Mob
 
+/**
+ * Creates a new user. Sets cash to 0, difficulty to 2, atk and def to 10, and
+ * generates a new ID
+ *
+ * @param name The user's display name
+ * @param sock The socket of the connection
+ */
 function User (name, sock) {
   this.name = name
   this.sock = sock
@@ -174,25 +181,50 @@ User.prototype.removeFriend = function (friend) {
   }
 }
 
+/**
+ * Returns the friend list as a string
+ *
+ * @return The user's friends. '<no friends>' is returned if user does not have any friends.
+ */
 User.prototype.listFriends = function () {
   if (this.friends.length === 0) return '<no friends>'
   if (this.friends.length === 1) return this.friends[0].name
   return this.friends.reduce((h, t) => h.name + ', ' + t.name)
 }
 
+/**
+ * Delegate for user.sock.write(msg)
+ *
+ * @param msg Message transmitted to user
+ */
 User.prototype.write = function (msg) {
   this.sock.write(msg)
 }
 
+/**
+ * Messages a friend
+ *
+ * @param name The name of the friend
+ * @param msg The message sent
+ */
 User.prototype.msgFriend = function (name, msg) {
   this.friends.find(e => e.name === name).write(msg)
 }
 
-User.prototype.transGp = function (user, amount, postTrans) {
+/**
+ * Transfer gold pieces (a.k.a cash)
+ *
+ * @param friendName The friend who is receiving / giving the gold pieces
+ * @param amount The transfer amount
+ * @param postTrans Called after the transfer.
+ *          First parameter  - Transfer result (true, false)
+ *          Second parameter - Friend (datatype User)
+ */
+User.prototype.transGp = function (friendName, amount, postTrans) {
   if (typeof (postTrans) !== 'function') {
     postTrans = function (transferStatus, friend) {}
   }
-  var friend = this.friends.find(e => e.name === user)
+  var friend = this.friends.find(e => e.name === friendName)
   if (typeof (friend) === 'undefined' || amount > this.cash) {
     postTrans(false, friend)
   } else {
@@ -202,10 +234,20 @@ User.prototype.transGp = function (user, amount, postTrans) {
   }
 }
 
+/**
+ * Increases the difficulty for mobs' stats and their occurance
+ *
+ */
 User.prototype.incrDifficulty = function () {
-  this.difficulty += 2
+  this.difficulty += 1
+  this.ID = utils.randHex(this.difficulty)
 }
 
+/**
+ * Returns the status of the user
+ *
+ * @return Status of the user
+ */
 User.prototype.stats = function () {
   return '[HP:' + this.hp + ', ATK:' + this.atkPoints +
       ', DEF:' + this.defPoints + ', GP:' + this.cash + ']'

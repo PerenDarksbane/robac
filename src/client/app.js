@@ -31,6 +31,13 @@ var PORT = 4000
 var isRunning = false
 var client = new net.Socket()
 
+/**
+ * Prompts the user and reads the line from `stdin`
+ *
+ * @param question The prompt
+ * @param format The format of the user's input as regexp
+ * @param callback Called when the proper input is received
+ */
 function ask (question, format, callback) {
   var stdin = process.stdin
   var stdout = process.stdout
@@ -49,12 +56,20 @@ function ask (question, format, callback) {
   })
 }
 
+/**
+ * Closes the connection and terminates the program
+ *
+ */
 function quitSession () {
   isRunning = false
   client.destroy()
   process.exit(0)
 }
 
+/**
+ * Prompts the user and interprets it as either a chat or a command
+ *
+ */
 function inputPrompt () {
   if (isRunning) {
     ask('', /^(\w|[.()+ \t/-?!#><'])*$/, function (text) {

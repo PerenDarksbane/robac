@@ -1,5 +1,11 @@
 var utils = require('../utils')
 
+/**
+ * Creates a mob with its hp, atk, and def based on the user's difficulty and ID
+ *
+ * @param diff The user's difficulty. String in base16 (hex)
+ * @param id The user's ID. String in base16 (hex)
+ */
 function Mob (diff, id) {
   this.hp = utils.rand(0, diff * parseInt(id, 16))
   this.atk = utils.rand(0, (diff * parseInt(id[0], 16) / 4))
