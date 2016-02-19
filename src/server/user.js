@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-var crypto = require('crypto')
+var utils = require('../utils')
 var Mob = require('./mob').Mob
 
 function User (name, sock) {
@@ -31,27 +31,25 @@ function User (name, sock) {
   this.friends = []
   this.cash = 0
   this.difficulty = 2
-  this.ID = randHex(this.difficulty)
+  this.ID = utils.randHex(this.difficulty)
   this.mobcounter = 0
   this.atkPoints = 10
   this.defPoints = 10
   this.hp = 25
 }
 
-var randHex = function (len) {
-  len = len | 0 // Ensure its a number
-  return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len)
-}
-
-var rand = function (lower, higher) {
-  return Math.floor(Math.random() * higher + lower)
-}
-
+/**
+ * YOU SHOULD NOT BE CALLING THIS FUNCTION:
+ * Logic behind finding the mobs. (async)
+ *
+ * @param u The user who is finding mobs
+ * @param onFind Callback for when the user does find a mob
+ */
 var inner = function (u, onFind) {
   if (u.mobcounter > 0 && u.mobcounter % Math.floor((u.difficulty / 2) + 1) === 0) {
     u.mobcounter--
   }
-  if (u.ID === randHex(u.difficulty)) {
+  if (u.ID === utils.randHex(u.difficulty)) {
     u.mobcounter++
     onFind()
   }
@@ -60,6 +58,11 @@ var inner = function (u, onFind) {
   }, 500)
 }
 
+/**
+ * Starts the async task for finding mobs
+ *
+ * @param onFind Callback for when the user does find a mob
+ */
 User.prototype.findMobs = function (onFind) {
   if (typeof (onFind) !== 'function') {
     onFind = function () {}
@@ -67,50 +70,88 @@ User.prototype.findMobs = function (onFind) {
   inner(this, onFind)
 }
 
+/**
+ * YOU SHOULD NOT BE CALLING THIS FUNCTION:
+ * Logic behind killing the mobs. (async)
+ *
+ * @param user The user who is killing this mob
+ * @param mob The mob the user is trying to kill
+ * @param cb Called when someone dies. `true` when mob dies. `false` otherwise.
+ */
 var mobKillInner = function (user, mob, cb) {
-  setTimeout(function () {
-    var atkpts
-    while (!mob.tryDef(rand(0, user.atkPoints))) {
-      atkpts = mob.tryHit()
-      if (user.def <= atkpts) {
-        user.hp -= atkpts
-        if (user.hp <= 5) {
-          user.mobcounter++
-          cb(false)
-          return
-        }
+  var atkpts
+  if (!mob.tryDef(utils.rand(0, user.atkPoints))) {
+    atkpts = mob.tryHit()
+    if (user.def <= atkpts) {
+      user.hp -= atkpts
+      if (user.hp <= 5) {
+        user.mobcounter++
+        cb(false)
+        return
       }
     }
-    cb(true)
-  }, 100)
+    setTimeout(function () {
+      mobKillInner(user, mob, cb)
+    }, 100)
+  } else cb(true)
 }
 
-User.prototype.killMob = function (f) {
-  if (typeof (f) !== 'function') {
-    f = function (r) {}
+/**
+ * Starts the async task for killing mobs
+ *
+ * @param uponDeath Called when someone dies. `true` when mob dies. `false` otherwise.
+ */
+User.prototype.killMob = function (uponDeath) {
+  if (this.mobcounter === 0) return
+  if (typeof (uponDeath) !== 'function') {
+    uponDeath = function (r) {}
   }
   this.mobcounter--
-  var mob = new Mob(this.difficulty, this.ID)
-  mobKillInner(this, mob, f)
+  mobKillInner(this, new Mob(this.difficulty, this.ID), uponDeath)
 }
 
+/**
+ * Checks to see if the user comes from specified address and port
+ *
+ * @param remoteAddr The address that the user might come from
+ * @param remotePort The port where the user might be connected to
+ * @return `true` if the user does. `false` otherwise
+ */
 User.prototype.matches = function (remoteAddr, remotePort) {
   return this.sock.remoteAddress === remoteAddr &&
       this.sock.remotePort === remotePort
 }
 
+/**
+ * Add multiple friends to a user
+ *
+ * @param friends A list of friends
+ */
 User.prototype.addFriends = function (friends) {
   for (var friend of friends) {
     this.addFriend(friend)
   }
 }
 
+/**
+ * Adds a single friend to user. Adding will be ignored when the user is adding
+ * him/herself or a friend who is added previously.
+ *
+ * @param friend A single friend
+ */
 User.prototype.addFriend = function (friend) {
   if (this !== friend && this.friends.indexOf(friend) < 0) {
     this.friends.push(friend)
   }
 }
 
+/**
+ * Removes multiple friends by searching its name. Removes all occurrences (if
+ * multiple exist)
+ *
+ * @param friends The list of friends getting removed
+ * @param postRemove Callback when the friend is removed. The friend removed is passed as parameter.
+ */
 User.prototype.removeFriendsByName = function (friends, postRemove) {
   if (typeof (postRemove) !== 'function') {
     postRemove = function (f) {}
@@ -122,6 +163,11 @@ User.prototype.removeFriendsByName = function (friends, postRemove) {
   }
 }
 
+/**
+ * Removes a friend by searching its name.
+ *
+ * @param friend The friend (datatype `User`)
+ */
 User.prototype.removeFriend = function (friend) {
   for (var i = 0; i < this.friends.length; i++) {
     if (this.friends[i] === friend) this.friends.splice(i, i + 1)
@@ -158,6 +204,11 @@ User.prototype.transGp = function (user, amount, postTrans) {
 
 User.prototype.incrDifficulty = function () {
   this.difficulty += 2
+}
+
+User.prototype.stats = function () {
+  return '[HP:' + this.hp + ', ATK:' + this.atkPoints +
+      ', DEF:' + this.defPoints + ', GP:' + this.cash + ']'
 }
 
 module.exports.User = User

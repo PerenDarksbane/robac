@@ -100,15 +100,15 @@ function validateUser (sock, name) {
   } else {
     var newUser = new User(name, sock)
     newUser.cash = 150
+    mainHub.push(newUser)
+    sock.write(JSON.stringify({
+      msg: 'Welcome ' + name + '!'
+    }))
     newUser.findMobs(function () {
       sock.write(JSON.stringify({
         msg: 'Mob detected...'
       }))
     })
-    mainHub.push(newUser)
-    sock.write(JSON.stringify({
-      msg: 'Welcome ' + name + '!'
-    }))
   }
 }
 
@@ -219,6 +219,18 @@ function procQuery (user, query) {
         msg: '' + user.mobcounter
       }))
       break
+    case 'hp':
+    case 'health':
+      user.write(JSON.stringify({
+        msg: '' + user.hp
+      }))
+      break
+    case 'stat':
+    case 'stats':
+      user.write(JSON.stringify({
+        msg: user.stats()
+      }))
+      break
     default:
       break
   }
@@ -288,7 +300,7 @@ net.createServer(function (sock) {
       } else if (isDef(data.unfriend)) procDelFriend(user, data.unfriend)
       else if (isDef(data.query)) procQuery(user, data.query)
       else if (isDef(data.kill)) {
-        console.log('Started killing...')
+        console.log(user.name + ' started killing...')
         user.killMob(function (rst) {
           if (rst) {
             var reward = user.difficulty * 10
@@ -302,7 +314,6 @@ net.createServer(function (sock) {
             }))
           }
         })
-        console.log('Killing in progress...')
       } else procEcho(user, data)
     }
   })
