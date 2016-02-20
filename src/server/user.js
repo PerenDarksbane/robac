@@ -25,6 +25,9 @@
 var utils = require('../utils')
 var Mob = require('./mob').Mob
 
+const DELTA_DIFFICULTY = Math.sqrt(2) / 17
+const MOB_OCCURRENCE = 2
+
 /**
  * Creates a new user. Sets cash to 0, difficulty to 2, atk and def to 10, and
  * generates a new ID
@@ -38,7 +41,7 @@ function User (name, sock) {
   this.friends = []
   this.cash = 0
   this.difficulty = 2
-  this.ID = utils.randHex(this.difficulty)
+  this.ID = utils.randHex(MOB_OCCURRENCE)
   this.mobcounter = 0
   this.atkPoints = 10
   this.defPoints = 10
@@ -56,7 +59,7 @@ var inner = function (u, onFind) {
   if (u.mobcounter > 0 && u.mobcounter % Math.floor((u.difficulty / 2) + 1) === 0) {
     u.mobcounter--
   }
-  if (u.ID === utils.randHex(u.difficulty)) {
+  if (u.ID === utils.randHex(MOB_OCCURRENCE)) {
     u.mobcounter++
     onFind()
   }
@@ -238,12 +241,19 @@ User.prototype.transGp = function (friendName, amount, postTrans) {
 }
 
 /**
+ * Decreases the difficulty for mobs' stats and their occurance
+ *
+ */
+User.prototype.decrDifficulty = function () {
+  this.difficulty -= DELTA_DIFFICULTY
+}
+
+/**
  * Increases the difficulty for mobs' stats and their occurance
  *
  */
 User.prototype.incrDifficulty = function () {
-  this.difficulty += 1
-  this.ID = utils.randHex(this.difficulty)
+  this.difficulty += DELTA_DIFFICULTY
 }
 
 /**
@@ -253,7 +263,8 @@ User.prototype.incrDifficulty = function () {
  */
 User.prototype.stats = function () {
   return '[HP:' + this.hp + ', ATK:' + this.atkPoints +
-      ', DEF:' + this.defPoints + ', GP:' + this.cash + ']'
+      ', DEF:' + this.defPoints + ', GP:' + this.cash + ', DIFF:' +
+      (this.difficulty | 0) + ']'
 }
 
 module.exports.User = User

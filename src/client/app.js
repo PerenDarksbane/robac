@@ -89,6 +89,7 @@ function inputPrompt () {
             console.log('/friend name1 name2...')
             console.log('/unfriend name1 name2...')
             console.log('/msg name msg')
+            console.log('/shout msg')
             console.log('/query field')
             console.log('/trans name amount')
             console.log('/kill')
@@ -107,6 +108,12 @@ function inputPrompt () {
             client.write(JSON.stringify({
               friend: text[1],
               msg: new S(oldText).between(text[1]).trimLeft().s
+            }))
+            break
+          case 'shout':
+            client.write(JSON.stringify({
+              shout: true,
+              msg: new S(oldText).between('/shout').trimLeft().s
             }))
             break
           case 'query':

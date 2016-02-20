@@ -173,7 +173,7 @@ function procDelFriend (user, friends) {
 }
 
 /**
- * Sending standard messages to others meaning they are sent to all friends.
+ * Sending messages to all friends.
  *
  * @param user The user performing this action
  * @param data The message being transmitted in JSON format. `msg` attribute
@@ -182,6 +182,20 @@ function procDelFriend (user, friends) {
 function procEcho (user, data) {
   data.msg = user.name + ':' + data.msg
   for (var friend of user.friends) friend.write(JSON.stringify(data))
+}
+
+/**
+ * Sending standard messages to others meaning they are sent to all friends.
+ *
+ * @param user The user performing this action
+ * @param data The message being transmitted in JSON format. `msg` attribute
+ * must be present
+ */
+function procShout (user, data) {
+  data.msg = user.name + ':' + data.msg
+  for (var person of mainHub) {
+    if (person !== user) person.write(JSON.stringify(data))
+  }
 }
 
 /**
@@ -272,6 +286,32 @@ function procTransfer (user, friend, amount) {
 }
 
 /**
+ * Queues action of killing mob. Adds cash and increases difficulty when mob is
+ * killed. Difficulty is decreased otherwise.
+ *
+ * @param user The user killing the mob
+ */
+function processKillMob (user) {
+  user.killMob(function (rst) {
+    if (rst) {
+      var reward = (user.difficulty | 0) * 10
+      user.cash += reward
+      user.incrDifficulty()
+      user.write(JSON.stringify({
+        msg: 'Adding ' + reward + ' GPs for killing mob. Difficulty is now ' +
+          (user.difficulty | 0) + '.'
+      }))
+    } else {
+      user.decrDifficulty()
+      user.write(JSON.stringify({
+        msg: 'You have ' + user.hp + ' hp remaining. Difficulty is now ' +
+          (user.difficulty | 0) + '.'
+      }))
+    }
+  })
+}
+
+/**
  * Checks if a variable is defined or is null
  *
  * @param v The variable you are testing
@@ -299,22 +339,9 @@ net.createServer(function (sock) {
         else procAddFriend(user, data.friend)
       } else if (isDef(data.unfriend)) procDelFriend(user, data.unfriend)
       else if (isDef(data.query)) procQuery(user, data.query)
-      else if (isDef(data.kill)) {
-        console.log(user.name + ' started killing...')
-        user.killMob(function (rst) {
-          if (rst) {
-            var reward = user.difficulty * 10
-            user.write(JSON.stringify({
-              msg: 'Adding ' + reward + ' GPs for killing mob'
-            }))
-            user.cash += reward
-          } else {
-            user.write(JSON.stringify({
-              msg: 'You have ' + user.hp + ' hp remaining...'
-            }))
-          }
-        })
-      } else procEcho(user, data)
+      else if (isDef(data.kill)) processKillMob(user)
+      else if (isDef(data.shout)) procShout(user, data)
+      else procEcho(user, data)
     }
   })
   sock.on('close', function (data) {
